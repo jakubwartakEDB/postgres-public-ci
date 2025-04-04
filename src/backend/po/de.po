@@ -22809,11 +22809,6 @@ msgstr "kann Relation %s nicht auf über %u Blöcke erweitern"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "unerwartete Daten hinter Dateiende in Block %u von Relation %s"
 
-#: storage/buffer/bufmgr.c:2350
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Das scheint mit fehlerhaften Kernels vorzukommen; Sie sollten eine Systemaktualisierung in Betracht ziehen."
-
 #: storage/buffer/bufmgr.c:5653
 #, c-format
 msgid "could not write block %u of %s"

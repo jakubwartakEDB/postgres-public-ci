@@ -19235,11 +19235,6 @@ msgstr "无法访问其它会话的临时表"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "关系 \"%2$s\" 的块 %1$u 中的EOF后面出现未期望的数据"
 
-#: storage/buffer/bufmgr.c:816
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "这是由于内核缺陷所致；请考虑更新您的操作系统."
-
 #: storage/buffer/bufmgr.c:914
 #, c-format
 msgid "invalid page in block %u of relation %s; zeroing out page"

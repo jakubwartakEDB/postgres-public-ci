@@ -18435,11 +18435,6 @@ msgstr "nie można uzyskać dostępu do tabel tymczasowych innych sesji"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "nieoczekiwane dane za EOF w bloku %u relacji %s"
 
-#: storage/buffer/bufmgr.c:809
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Zaobserwowano takie zachowanie przy wadliwy jądrze; rozważ aktualizację systemu."
-
 #: storage/buffer/bufmgr.c:907
 #, c-format
 msgid "invalid page in block %u of relation %s; zeroing out page"

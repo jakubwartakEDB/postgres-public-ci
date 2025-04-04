@@ -21264,11 +21264,6 @@ msgstr "не можна розширити відношення %s понад %u
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "неочікуванні дані після EOF в блоці %u відношення %s"
 
-#: storage/buffer/bufmgr.c:2000
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Ця ситуація може виникати через помилки в ядрі; можливо, вам слід оновити вашу систему."
-
 #: storage/buffer/bufmgr.c:5219
 #, c-format
 msgid "could not write block %u of %s"

@@ -23145,13 +23145,6 @@ msgstr "%s 릴레이션은 %u개 블록을 초과하여 확장할 수 없음"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "%u 블록(해당 릴레이션: %s)에 EOF 범위를 넘는 예기치 않은 데이터가 있음"
 
-#: storage/buffer/bufmgr.c:2000
-#, c-format
-msgid ""
-"This has been seen to occur with buggy kernels; consider updating your "
-"system."
-msgstr "이 문제는 커널의 문제로 알려졌습니다. 시스템을 업데이트하십시오."
-
 #: storage/buffer/bufmgr.c:5219
 #, c-format
 msgid "could not write block %u of %s"
