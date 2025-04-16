@@ -55,6 +55,17 @@ pg_numa_get_max_node(void)
 	return numa_max_node();
 }
 
+int
+pg_numa_interleave_memptr(void *ptr, size_t sz)
+{
+	struct bitmask *nodemask = numa_allocate_nodemask();
+
+	numa_bitmask_setall(nodemask);
+	numa_interleave_memory(ptr, sz, nodemask);
+	numa_free_nodemask(nodemask);
+	return 0;
+}
+
 #else
 
 /* Empty wrappers */
@@ -73,6 +84,12 @@ pg_numa_query_pages(int pid, unsigned long count, void **pages, int *status)
 
 int
 pg_numa_get_max_node(void)
+{
+	return 0;
+}
+
+int
+pg_numa_interleave_memptr(void *ptr, size_t sz)
 {
 	return 0;
 }

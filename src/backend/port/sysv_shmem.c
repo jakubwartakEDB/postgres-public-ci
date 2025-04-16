@@ -29,6 +29,7 @@
 
 #include "miscadmin.h"
 #include "port/pg_bitutils.h"
+#include "port/pg_numa.h"
 #include "portability/mem.h"
 #include "storage/dsm.h"
 #include "storage/fd.h"
@@ -661,6 +662,12 @@ CreateAnonymousSegment(Size *size)
 						 "memory usage, perhaps by reducing \"shared_buffers\" or "
 						 "\"max_connections\".",
 						 allocsize) : 0));
+	}
+
+	if (numa == NUMA_ON || (numa == NUMA_AUTO && pg_numa_get_max_node() > 1))
+	{
+		elog(DEBUG1, "enabling NUMA shm interleaving");
+		pg_numa_interleave_memptr(ptr, allocsize);
 	}
 
 	*size = allocsize;

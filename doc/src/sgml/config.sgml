@@ -2313,6 +2313,22 @@ include_dir 'conf.d'
       </listitem>
      </varlistentry>
 
+     <varlistentry id="guc-numa" xreflabel="numa">
+      <term><varname>numa</varname> (<type>enum</type>)
+      <indexterm>
+       <primary><varname>numa</varname> configuration parameter</primary>
+      </indexterm>
+      </term>
+      <listitem>
+       <para>
+        Specifies wheter to use NUMA interleaving policy for the shared memory
+        segment. Possible values are <literal>off</literal>, <literal>on</literal>
+        and <literal>auto</literal>. This parameter is only effective on Linux.
+        The default value is <literal>off</literal>. This parameter can only be set
+        at server start.
+       </para>
+      </listitem>
+     </varlistentry>
      </variablelist>
      </sect2>
 

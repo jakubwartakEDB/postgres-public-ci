@@ -46,6 +46,7 @@ extern PGDLLIMPORT int shared_memory_type;
 extern PGDLLIMPORT int huge_pages;
 extern PGDLLIMPORT int huge_page_size;
 extern PGDLLIMPORT int huge_pages_status;
+extern PGDLLIMPORT int numa;
 
 /* Possible values for huge_pages and huge_pages_status */
 typedef enum
@@ -63,6 +64,15 @@ typedef enum
 	SHMEM_TYPE_SYSV,
 	SHMEM_TYPE_MMAP,
 }			PGShmemType;
+
+typedef enum
+{
+	NUMA_OFF,
+	NUMA_ON,
+	NUMA_AUTO,
+}			NumaType;
+
+#define DEFAULT_NUMA NUMA_OFF
 
 #ifndef WIN32
 extern PGDLLIMPORT unsigned long UsedShmemSegID;

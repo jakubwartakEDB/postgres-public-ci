@@ -491,6 +491,13 @@ static const struct config_enum_entry file_copy_method_options[] = {
 	{NULL, 0, false}
 };
 
+static const struct config_enum_entry numa_options[] = {
+	{"off", NUMA_OFF, false},
+	{"on", NUMA_ON, false},
+	{"auto", NUMA_AUTO, false},
+	{NULL, 0, false}
+};
+
 /*
  * Options for enum values stored in other modules
  */
@@ -579,6 +586,7 @@ static int	ssl_renegotiation_limit;
 int			huge_pages = HUGE_PAGES_TRY;
 int			huge_page_size;
 int			huge_pages_status = HUGE_PAGES_UNKNOWN;
+int			numa = DEFAULT_NUMA;
 
 /*
  * These variables are all dummies that don't do anything, except in some
@@ -5416,6 +5424,16 @@ struct config_enum ConfigureNamesEnum[] =
 		&io_method,
 		DEFAULT_IO_METHOD, io_method_options,
 		NULL, assign_io_method, NULL
+	},
+
+	{
+		{"numa", PGC_POSTMASTER, RESOURCES_MEM,
+			gettext_noop("Whether to use NUMA interleaving for shared memory."),
+			NULL
+		},
+		&numa,
+		DEFAULT_NUMA, numa_options,
+		NULL, NULL, NULL
 	},
 
 	/* End-of-list marker */
