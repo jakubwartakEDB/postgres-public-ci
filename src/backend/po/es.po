@@ -22076,11 +22076,6 @@ msgstr "no se puede extender la relación %s más allá de %u bloques"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "datos inesperados más allá del EOF en el bloque %u de relación %s"
 
-#: storage/buffer/bufmgr.c:2350
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Esto parece ocurrir sólo con kernels defectuosos; considere actualizar su sistema."
-
 #: storage/buffer/bufmgr.c:5653
 #, c-format
 msgid "could not write block %u of %s"

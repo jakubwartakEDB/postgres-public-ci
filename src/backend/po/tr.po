@@ -18914,16 +18914,6 @@ msgstr "diğer oturumların geçici tablolarına erişilemez"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "\"%2$s\" nesnesinin %1$u bloğunda dosya sonundan sonra beklenmeyen veri"
 
-#: storage/buffer/bufmgr.c:816
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Bu durum bazı eski çekirdeklerde meydana gelebilir. Yeni kernellerde bu düzeltilmiştir."
-
-#: storage/buffer/bufmgr.c:914
-#, fuzzy, c-format
-msgid "invalid page in block %u of relation %s; zeroing out page"
-msgstr "\"%2$s\" tablosunun %1$u bloğunda geçersiz sayfa başlığı; sayfa sıfırlanıyor"
-
 #: storage/buffer/bufmgr.c:4056
 #, c-format
 msgid "could not write block %u of %s"

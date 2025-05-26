@@ -25027,15 +25027,6 @@ msgstr "не удалось увеличить отношение \"%s\" до б
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "неожиданные данные после EOF в блоке %u отношения %s"
 
-#: storage/buffer/bufmgr.c:2350
-#, c-format
-msgid ""
-"This has been seen to occur with buggy kernels; consider updating your "
-"system."
-msgstr ""
-"Эта ситуация может возникать из-за ошибок в ядре; возможно, вам следует "
-"обновить ОС."
-
 #: storage/buffer/bufmgr.c:5653
 #, c-format
 msgid "could not write block %u of %s"

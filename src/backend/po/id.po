@@ -13439,11 +13439,6 @@ msgstr "tak dapat akses table sementara atau session yang lain."
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "data diatas EOF yang tidak diharapkan pada blok %u dari tabel %s"
 
-#: storage/buffer/bufmgr.c:387
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Hal ini sudah pernah terjadi pada kernel yang bermasalah, cobalah update sistem Anda."
-
 #: storage/buffer/bufmgr.c:474
 #, c-format
 msgid "invalid page in block %u of relation %s; zeroing out page"

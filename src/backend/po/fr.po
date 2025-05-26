@@ -22664,13 +22664,6 @@ msgstr ""
 "données inattendues après la fin de fichier dans le bloc %u de la relation\n"
 "%s"
 
-#: storage/buffer/bufmgr.c:2000
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr ""
-"Ceci s'est déjà vu avec des noyaux buggés ; pensez à mettre à jour votre\n"
-"système."
-
 #: storage/buffer/bufmgr.c:5219
 #, c-format
 msgid "could not write block %u of %s"

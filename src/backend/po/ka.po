@@ -22909,11 +22909,6 @@ msgstr ""
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr ""
 
-#: storage/buffer/bufmgr.c:2782
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr ""
-
 #: storage/buffer/bufmgr.c:6185
 #, c-format
 msgid "could not write block %u of %s"

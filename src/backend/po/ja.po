@@ -22914,11 +22914,6 @@ msgstr "リレーション\"%s\"を%uブロックを超えて拡張できませ�
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "リレーション %2$s の %1$u ブロック目で、EOF の先に想定外のデータを検出しました"
 
-#: storage/buffer/bufmgr.c:2775
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "これはカーネルの不具合で発生した模様です。システムの更新を検討してください。"
-
 #: storage/buffer/bufmgr.c:6115
 #, c-format
 msgid "could not write block %u of %s"

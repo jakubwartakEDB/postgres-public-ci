@@ -22646,11 +22646,6 @@ msgstr "kan inte utöka relation %s utöver %u block"
 msgid "unexpected data beyond EOF in block %u of relation %s"
 msgstr "oväntad data efter EOF i block %u för relation %s"
 
-#: storage/buffer/bufmgr.c:2350
-#, c-format
-msgid "This has been seen to occur with buggy kernels; consider updating your system."
-msgstr "Detta beteende har observerats med buggiga kärnor; fundera på att uppdatera ditt system."
-
 #: storage/buffer/bufmgr.c:5653
 #, c-format
 msgid "could not write block %u of %s"
