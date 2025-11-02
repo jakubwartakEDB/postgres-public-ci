@@ -66,11 +66,15 @@
 #include <execinfo.h>
 #endif
 
+#ifdef _MSC_VER
+#include <dbghelp.h>
+#include <windows.h>
+#endif
+
 #include "access/xact.h"
 #include "common/ip.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
-#include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "nodes/miscnodes.h"
 #include "pgstat.h"
@@ -138,6 +142,11 @@ static void write_syslog(int level, const char *line);
 
 #ifdef WIN32
 static void write_eventlog(int level, const char *line, int len);
+#endif
+
+#ifdef _MSC_VER
+static bool backtrace_symbols_initialized = false;
+static HANDLE backtrace_process = NULL;
 #endif
 
 /* We provide a small stack of ErrorData records for re-entrant cases */
@@ -1116,11 +1125,30 @@ errbacktrace(void)
 	return 0;
 }
 
+#ifdef _MSC_VER
+/*
+ * Cleanup function for DbgHelp resources.
+ * Called via on_proc_exit() to release resources allocated by SymInitialize().
+ */
+static void
+backtrace_cleanup(int code, Datum arg)
+{
+	SymCleanup(backtrace_process);
+}
+#endif
+
 /*
  * Compute backtrace data and add it to the supplied ErrorData.  num_skip
  * specifies how many inner frames to skip.  Use this to avoid showing the
  * internal backtrace support functions in the backtrace.  This requires that
  * this and related functions are not inlined.
+ *
+ * Platform-specific implementations:
+ * - Unix/Linux: Uses backtrace() and backtrace_symbols()
+ * - Windows: Uses CaptureStackBackTrace() with DbgHelp for symbol resolution
+ * 	 (requires PDB files; falls back to exported functions/raw addresses if
+ * 	 unavailable)
+ * - Other: Returns unsupported message
  */
 static void
 set_backtrace(ErrorData *edata, int num_skip)
@@ -1147,11 +1175,124 @@ set_backtrace(ErrorData *edata, int num_skip)
 			appendStringInfoString(&errtrace,
 								   "insufficient memory for backtrace generation");
 	}
+#elif defined(_MSC_VER)
+	{
+		void		   *buf[100];
+		int				nframes;
+		char			buffer[sizeof(SYMBOL_INFOW) + MAX_SYM_NAME * sizeof(wchar_t)];
+		PSYMBOL_INFOW 	symbol;
+
+		if (!backtrace_symbols_initialized)
+		{
+			backtrace_process = GetCurrentProcess();
+
+			SymSetOptions(SYMOPT_UNDNAME |
+						  SYMOPT_DEFERRED_LOADS |
+						  SYMOPT_LOAD_LINES |
+						  SYMOPT_FAIL_CRITICAL_ERRORS);
+
+			if (SymInitialize(backtrace_process, NULL, TRUE))
+			{
+				backtrace_symbols_initialized = true;
+				on_proc_exit(backtrace_cleanup, 0);
+			}
+			else
+			{
+				elog(WARNING, "could not initialize the symbol handler: error code %lu",
+					 GetLastError());
+				edata->backtrace = errtrace.data;
+				return;
+			}
+		}
+
+		nframes = CaptureStackBackTrace(num_skip, lengthof(buf), buf, NULL);
+
+		if (nframes == 0)
+		{
+			appendStringInfoString(&errtrace, "\nNo stack frames captured");
+			edata->backtrace = errtrace.data;
+			return;
+		}
+
+		symbol = (PSYMBOL_INFOW) buffer;
+		symbol->MaxNameLen = MAX_SYM_NAME;
+		symbol->SizeOfStruct = sizeof(SYMBOL_INFOW);
+
+		for (int i = 0; i < nframes; i++)
+		{
+			DWORD64		address = (DWORD64)buf[i];
+			DWORD64		displacement = 0;
+			BOOL		sym_result;
+
+			sym_result = SymFromAddrW(backtrace_process,
+									 address,
+									 &displacement,
+									 symbol);
+			if (sym_result)
+			{
+				char		symbol_name[MAX_SYM_NAME];
+				size_t		result;
+
+				/*
+				* Convert symbol name from UTF-16 to database encoding using
+				* wchar2char(), which handles both UTF-8 and non-UTF-8 databases
+				* correctly on Windows.
+				*/
+				result = wchar2char(symbol_name, (const wchar_t *) symbol->Name,
+									sizeof(symbol_name), NULL);
+
+				if (result == (size_t) -1)
+				{
+					/* Conversion failed, use address only */
+					appendStringInfo(&errtrace,
+										"\n[0x%llx]",
+										(unsigned long long) address);
+				}
+				else
+				{
+					IMAGEHLP_LINEW64 line;
+					DWORD		line_displacement = 0;
+					char		filename[MAX_PATH];
+
+					line.SizeOfStruct = sizeof(IMAGEHLP_LINEW64);
+
+					/* Start with the common part: symbol+offset [address] */
+					appendStringInfo(&errtrace,
+										"\n%s+0x%llx [0x%llx]",
+										symbol_name,
+										(unsigned long long) displacement,
+										(unsigned long long) address);
+
+					/* Try to append line info if available */
+					if (SymGetLineFromAddrW64(backtrace_process,
+												address,
+												&line_displacement,
+												&line))
+					{
+						result = wchar2char(filename, (const wchar_t *) line.FileName,
+											sizeof(filename), NULL);
+
+						if (result != (size_t) -1)
+						{
+							appendStringInfo(&errtrace,
+												" [%s:%lu]",
+												filename,
+												(unsigned long) line.LineNumber);
+						}
+					}
+				}
+			}
+			else
+			{
+				elog(WARNING, "symbol lookup failed: error code %lu",
+						GetLastError());
+			}
+		}
+	}
 #else
 	appendStringInfoString(&errtrace,
 						   "backtrace generation is not supported by this installation");
 #endif
-
 	edata->backtrace = errtrace.data;
 }
 

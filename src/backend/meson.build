@@ -1,6 +1,11 @@
 # Copyright (c) 2022-2025, PostgreSQL Global Development Group
 
 backend_build_deps = [backend_code]
+
+if host_system == 'windows' and cc.get_id() == 'msvc'
+  backend_build_deps += cc.find_library('dbghelp')
+endif
+
 backend_sources = []
 backend_link_with = [pgport_srv, common_srv]
 
