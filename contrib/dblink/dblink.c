@@ -144,7 +144,7 @@ static HTAB *remoteConnHash = NULL;
 
 /* custom wait event values, retrieved from shared memory */
 static uint32 dblink_we_connect = 0;
-static uint32 dblink_we_get_conn = 0;
+static uint64 dblink_we_get_conn = 0;
 static uint32 dblink_we_get_result = 0;
 
 /*

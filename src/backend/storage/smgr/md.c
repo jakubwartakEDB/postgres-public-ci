@@ -490,6 +490,7 @@ mdextend(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 	pgoff_t		seekpos;
 	int			nbytes;
 	MdfdVec    *v;
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	/* If this build supports direct I/O, the buffer must be I/O aligned. */
 	if (PG_O_DIRECT != 0 && PG_IO_ALIGN_SIZE <= BLCKSZ)
@@ -519,7 +520,7 @@ mdextend(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 
 	Assert(seekpos < (pgoff_t) BLCKSZ * RELSEG_SIZE);
 
-	if ((nbytes = FileWrite(v->mdfd_vfd, buffer, BLCKSZ, seekpos, WAIT_EVENT_DATA_FILE_EXTEND)) != BLCKSZ)
+	if ((nbytes = FileWrite(v->mdfd_vfd, buffer, BLCKSZ, seekpos, WAIT_EVENT_DATA_FILE_EXTEND | relnumber)) != BLCKSZ)
 	{
 		if (nbytes < 0)
 			ereport(ERROR,
@@ -555,6 +556,7 @@ mdzeroextend(SMgrRelation reln, ForkNumber forknum,
 	MdfdVec    *v;
 	BlockNumber curblocknum = blocknum;
 	int			remblocks = nblocks;
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	Assert(nblocks > 0);
 
@@ -608,7 +610,7 @@ mdzeroextend(SMgrRelation reln, ForkNumber forknum,
 
 			ret = FileFallocate(v->mdfd_vfd,
 								seekpos, (pgoff_t) BLCKSZ * numblocks,
-								WAIT_EVENT_DATA_FILE_EXTEND);
+								WAIT_EVENT_DATA_FILE_EXTEND | relnumber);
 			if (ret != 0)
 			{
 				ereport(ERROR,
@@ -631,7 +633,7 @@ mdzeroextend(SMgrRelation reln, ForkNumber forknum,
 			 */
 			ret = FileZero(v->mdfd_vfd,
 						   seekpos, (pgoff_t) BLCKSZ * numblocks,
-						   WAIT_EVENT_DATA_FILE_EXTEND);
+						   WAIT_EVENT_DATA_FILE_EXTEND | relnumber);
 			if (ret < 0)
 				ereport(ERROR,
 						errcode_for_file_access(),
@@ -737,6 +739,7 @@ mdprefetch(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 		   int nblocks)
 {
 #ifdef USE_PREFETCH
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	Assert((io_direct_flags & IO_DIRECT_DATA) == 0);
 
@@ -763,7 +766,7 @@ mdprefetch(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 				RELSEG_SIZE - (blocknum % ((BlockNumber) RELSEG_SIZE)));
 
 		(void) FilePrefetch(v->mdfd_vfd, seekpos, BLCKSZ * nblocks_this_segment,
-							WAIT_EVENT_DATA_FILE_PREFETCH);
+							WAIT_EVENT_DATA_FILE_PREFETCH | relnumber);
 
 		blocknum += nblocks_this_segment;
 		nblocks -= nblocks_this_segment;
@@ -847,6 +850,7 @@ void
 mdreadv(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 		void **buffers, BlockNumber nblocks)
 {
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 	while (nblocks > 0)
 	{
 		struct iovec iov[PG_IOV_MAX];
@@ -890,7 +894,7 @@ mdreadv(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 												reln->smgr_rlocator.locator.relNumber,
 												reln->smgr_rlocator.backend);
 			nbytes = FileReadV(v->mdfd_vfd, iov, iovcnt, seekpos,
-							   WAIT_EVENT_DATA_FILE_READ);
+							   WAIT_EVENT_DATA_FILE_READ | relnumber);
 			TRACE_POSTGRESQL_SMGR_MD_READ_DONE(forknum, blocknum,
 											   reln->smgr_rlocator.locator.spcOid,
 											   reln->smgr_rlocator.locator.dbOid,
@@ -992,6 +996,7 @@ mdstartreadv(PgAioHandle *ioh,
 	struct iovec *iov;
 	int			iovcnt;
 	int			ret;
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	v = _mdfd_getseg(reln, forknum, blocknum, false,
 					 EXTENSION_FAIL | EXTENSION_CREATE_RECOVERY);
@@ -1026,7 +1031,7 @@ mdstartreadv(PgAioHandle *ioh,
 							 false);
 	pgaio_io_register_callbacks(ioh, PGAIO_HCB_MD_READV, 0);
 
-	ret = FileStartReadV(ioh, v->mdfd_vfd, iovcnt, seekpos, WAIT_EVENT_DATA_FILE_READ);
+	ret = FileStartReadV(ioh, v->mdfd_vfd, iovcnt, seekpos, WAIT_EVENT_DATA_FILE_READ | relnumber);
 	if (ret != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
@@ -1059,6 +1064,7 @@ void
 mdwritev(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 		 const void **buffers, BlockNumber nblocks, bool skipFsync)
 {
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 	/* This assert is too expensive to have on normally ... */
 #ifdef CHECK_WRITE_VS_EXTEND
 	Assert((uint64) blocknum + (uint64) nblocks <= (uint64) mdnblocks(reln, forknum));
@@ -1107,7 +1113,7 @@ mdwritev(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
 												 reln->smgr_rlocator.locator.relNumber,
 												 reln->smgr_rlocator.backend);
 			nbytes = FileWriteV(v->mdfd_vfd, iov, iovcnt, seekpos,
-								WAIT_EVENT_DATA_FILE_WRITE);
+								WAIT_EVENT_DATA_FILE_WRITE | relnumber);
 			TRACE_POSTGRESQL_SMGR_MD_WRITE_DONE(forknum, blocknum,
 												reln->smgr_rlocator.locator.spcOid,
 												reln->smgr_rlocator.locator.dbOid,
@@ -1164,6 +1170,7 @@ void
 mdwriteback(SMgrRelation reln, ForkNumber forknum,
 			BlockNumber blocknum, BlockNumber nblocks)
 {
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 	Assert((io_direct_flags & IO_DIRECT_DATA) == 0);
 
 	/*
@@ -1204,7 +1211,7 @@ mdwriteback(SMgrRelation reln, ForkNumber forknum,
 
 		seekpos = (pgoff_t) BLCKSZ * (blocknum % ((BlockNumber) RELSEG_SIZE));
 
-		FileWriteback(v->mdfd_vfd, seekpos, (pgoff_t) BLCKSZ * nflush, WAIT_EVENT_DATA_FILE_FLUSH);
+		FileWriteback(v->mdfd_vfd, seekpos, (pgoff_t) BLCKSZ * nflush, WAIT_EVENT_DATA_FILE_FLUSH | relnumber);
 
 		nblocks -= nflush;
 		blocknum += nflush;
@@ -1289,6 +1296,7 @@ mdtruncate(SMgrRelation reln, ForkNumber forknum,
 {
 	BlockNumber priorblocks;
 	int			curopensegs;
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	if (nblocks > curnblk)
 	{
@@ -1322,7 +1330,7 @@ mdtruncate(SMgrRelation reln, ForkNumber forknum,
 			 * This segment is no longer active. We truncate the file, but do
 			 * not delete it, for reasons explained in the header comments.
 			 */
-			if (FileTruncate(v->mdfd_vfd, 0, WAIT_EVENT_DATA_FILE_TRUNCATE) < 0)
+			if (FileTruncate(v->mdfd_vfd, 0, WAIT_EVENT_DATA_FILE_TRUNCATE | relnumber) < 0)
 				ereport(ERROR,
 						(errcode_for_file_access(),
 						 errmsg("could not truncate file \"%s\": %m",
@@ -1348,7 +1356,7 @@ mdtruncate(SMgrRelation reln, ForkNumber forknum,
 			 */
 			BlockNumber lastsegblocks = nblocks - priorblocks;
 
-			if (FileTruncate(v->mdfd_vfd, (pgoff_t) lastsegblocks * BLCKSZ, WAIT_EVENT_DATA_FILE_TRUNCATE) < 0)
+			if (FileTruncate(v->mdfd_vfd, (pgoff_t) lastsegblocks * BLCKSZ, WAIT_EVENT_DATA_FILE_TRUNCATE | relnumber) < 0)
 				ereport(ERROR,
 						(errcode_for_file_access(),
 						 errmsg("could not truncate file \"%s\" to %u blocks: %m",
@@ -1428,6 +1436,7 @@ mdimmedsync(SMgrRelation reln, ForkNumber forknum)
 {
 	int			segno;
 	int			min_inactive_seg;
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	/*
 	 * NOTE: mdnblocks makes sure we have opened all active segments, so that
@@ -1459,7 +1468,7 @@ mdimmedsync(SMgrRelation reln, ForkNumber forknum)
 		 * manager could also be tracked in such an IOContext, wait until
 		 * these are also tracked to track immediate fsyncs.
 		 */
-		if (FileSync(v->mdfd_vfd, WAIT_EVENT_DATA_FILE_IMMEDIATE_SYNC) < 0)
+		if (FileSync(v->mdfd_vfd, WAIT_EVENT_DATA_FILE_IMMEDIATE_SYNC | relnumber) < 0)
 			ereport(data_sync_elevel(ERROR),
 					(errcode_for_file_access(),
 					 errmsg("could not fsync file \"%s\": %m",
@@ -1504,6 +1513,7 @@ static void
 register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec *seg)
 {
 	FileTag		tag;
+	RelFileNumber relnumber = reln->smgr_rlocator.locator.relNumber;
 
 	INIT_MD_FILETAG(tag, reln->smgr_rlocator.locator, forknum, seg->mdfd_segno);
 
@@ -1519,7 +1529,7 @@ register_dirty_segment(SMgrRelation reln, ForkNumber forknum, MdfdVec *seg)
 
 		io_start = pgstat_prepare_io_time(track_io_timing);
 
-		if (FileSync(seg->mdfd_vfd, WAIT_EVENT_DATA_FILE_SYNC) < 0)
+		if (FileSync(seg->mdfd_vfd, WAIT_EVENT_DATA_FILE_SYNC | relnumber) < 0)
 			ereport(data_sync_elevel(ERROR),
 					(errcode_for_file_access(),
 					 errmsg("could not fsync file \"%s\": %m",
@@ -1895,6 +1905,7 @@ mdsyncfiletag(const FileTag *ftag, char *path)
 	bool		need_to_close;
 	int			result,
 				save_errno;
+	RelFileNumber relnumber = ftag->rlocator.relNumber;
 
 	/* See if we already have the file open, or need to open it. */
 	if (ftag->segno < reln->md_num_open_segs[ftag->forknum])
@@ -1919,7 +1930,7 @@ mdsyncfiletag(const FileTag *ftag, char *path)
 	io_start = pgstat_prepare_io_time(track_io_timing);
 
 	/* Sync the file. */
-	result = FileSync(file, WAIT_EVENT_DATA_FILE_SYNC);
+	result = FileSync(file, WAIT_EVENT_DATA_FILE_SYNC | relnumber);
 	save_errno = errno;
 
 	if (need_to_close)

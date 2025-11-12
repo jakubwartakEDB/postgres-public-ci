@@ -72,7 +72,7 @@ static volatile sig_atomic_t got_standby_lock_timeout = false;
 
 static void ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId *waitlist,
 												   ProcSignalReason reason,
-												   uint32 wait_event_info,
+												   uint64 wait_event_info,
 												   bool report_waiting);
 static void SendRecoveryConflictWithBufferPin(ProcSignalReason reason);
 static XLogRecPtr LogCurrentRunningXacts(RunningTransactions CurrRunningXacts);
@@ -231,7 +231,7 @@ static int	standbyWait_us = STANDBY_INITIAL_WAIT_US;
  * more then we return true, if we can wait some more return false.
  */
 static bool
-WaitExceedsMaxStandbyDelay(uint32 wait_event_info)
+WaitExceedsMaxStandbyDelay(uint64 wait_event_info)
 {
 	TimestampTz ltime;
 
@@ -358,7 +358,7 @@ LogRecoveryConflict(ProcSignalReason reason, TimestampTz wait_start,
  */
 static void
 ResolveRecoveryConflictWithVirtualXIDs(VirtualTransactionId *waitlist,
-									   ProcSignalReason reason, uint32 wait_event_info,
+									   ProcSignalReason reason, uint64 wait_event_info,
 									   bool report_waiting)
 {
 	TimestampTz waitStart = 0;
@@ -469,6 +469,7 @@ ResolveRecoveryConflictWithSnapshot(TransactionId snapshotConflictHorizon,
 									bool isCatalogRel,
 									RelFileLocator locator)
 {
+	RelFileNumber relnumber = locator.relNumber;
 	VirtualTransactionId *backends;
 
 	/*
@@ -490,7 +491,7 @@ ResolveRecoveryConflictWithSnapshot(TransactionId snapshotConflictHorizon,
 										 locator.dbOid);
 	ResolveRecoveryConflictWithVirtualXIDs(backends,
 										   PROCSIG_RECOVERY_CONFLICT_SNAPSHOT,
-										   WAIT_EVENT_RECOVERY_CONFLICT_SNAPSHOT,
+										   WAIT_EVENT_RECOVERY_CONFLICT_SNAPSHOT | relnumber,
 										   true);
 
 	/*
@@ -556,12 +557,14 @@ ResolveRecoveryConflictWithTablespace(Oid tsid)
 	 * them.
 	 *
 	 * We don't wait for commit because drop tablespace is non-transactional.
+	 *
+	 * We pass tablespaceId as wait_event_arg.
 	 */
 	temp_file_users = GetConflictingVirtualXIDs(InvalidTransactionId,
 												InvalidOid);
 	ResolveRecoveryConflictWithVirtualXIDs(temp_file_users,
 										   PROCSIG_RECOVERY_CONFLICT_TABLESPACE,
-										   WAIT_EVENT_RECOVERY_CONFLICT_TABLESPACE,
+										   WAIT_EVENT_RECOVERY_CONFLICT_TABLESPACE | tsid,
 										   true);
 }
 
