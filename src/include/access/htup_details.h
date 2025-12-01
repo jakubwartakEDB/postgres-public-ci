@@ -404,7 +404,7 @@ HeapTupleHeaderGetUpdateXid(const HeapTupleHeaderData *tup)
 	if (!((tup)->t_infomask & HEAP_XMAX_INVALID) &&
 		((tup)->t_infomask & HEAP_XMAX_IS_MULTI) &&
 		!((tup)->t_infomask & HEAP_XMAX_LOCK_ONLY))
-		return HeapTupleGetUpdateXid(tup);
+		return HeapTupleGetUpdateXid(tup, 13);
 	else
 		return HeapTupleHeaderGetRawXmax(tup);
 }

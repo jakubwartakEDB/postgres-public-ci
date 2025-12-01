@@ -204,7 +204,7 @@ static int	LocalLWLockCounter;
 #define MAX_NAMED_TRANCHES 256
 
 static void InitializeLWLocks(void);
-static inline void LWLockReportWaitStart(LWLock *lock);
+static inline void LWLockReportWaitStart(LWLock *lock, uint32 additional_info);
 static inline void LWLockReportWaitEnd(void);
 static const char *GetLWTrancheName(uint16 trancheId);
 
@@ -716,9 +716,9 @@ LWLockInitialize(LWLock *lock, int tranche_id)
  * event based on tranche and lock id.
  */
 static inline void
-LWLockReportWaitStart(LWLock *lock)
+LWLockReportWaitStart(LWLock *lock, uint32 additional_info)
 {
-	pgstat_report_wait_start(PG_WAIT_LWLOCK | ((uint64_t) lock->tranche << 32));
+	pgstat_report_wait_start(PG_WAIT_LWLOCK | ((uint64_t) lock->tranche << 32) | additional_info);
 }
 
 /*
@@ -1178,6 +1178,13 @@ LWLockDequeueSelf(LWLock *lock)
 bool
 LWLockAcquire(LWLock *lock, LWLockMode mode)
 {
+	return LWLockAcquireExt(lock, mode, 0);
+}
+
+/* XXX/DEMO just for demo purposes */
+bool
+LWLockAcquireExt(LWLock *lock, LWLockMode mode, uint32 additional_info)
+{
 	PGPROC	   *proc = MyProc;
 	bool		result = true;
 	int			extraWaits = 0;
@@ -1289,7 +1296,7 @@ LWLockAcquire(LWLock *lock, LWLockMode mode)
 		lwstats->block_count++;
 #endif
 
-		LWLockReportWaitStart(lock);
+		LWLockReportWaitStart(lock, additional_info);
 		if (TRACE_POSTGRESQL_LWLOCK_WAIT_START_ENABLED())
 			TRACE_POSTGRESQL_LWLOCK_WAIT_START(T_NAME(lock), mode);
 
@@ -1454,7 +1461,7 @@ LWLockAcquireOrWait(LWLock *lock, LWLockMode mode)
 			lwstats->block_count++;
 #endif
 
-			LWLockReportWaitStart(lock);
+			LWLockReportWaitStart(lock, 0);
 			if (TRACE_POSTGRESQL_LWLOCK_WAIT_START_ENABLED())
 				TRACE_POSTGRESQL_LWLOCK_WAIT_START(T_NAME(lock), mode);
 
@@ -1672,7 +1679,7 @@ LWLockWaitForVar(LWLock *lock, pg_atomic_uint64 *valptr, uint64 oldval,
 		lwstats->block_count++;
 #endif
 
-		LWLockReportWaitStart(lock);
+		LWLockReportWaitStart(lock, 0);
 		if (TRACE_POSTGRESQL_LWLOCK_WAIT_START_ENABLED())
 			TRACE_POSTGRESQL_LWLOCK_WAIT_START(T_NAME(lock), LW_EXCLUSIVE);
 

@@ -122,6 +122,7 @@ extern PGDLLIMPORT bool Trace_lwlocks;
 #endif
 
 extern bool LWLockAcquire(LWLock *lock, LWLockMode mode);
+extern bool LWLockAcquireExt(LWLock *lock, LWLockMode mode, uint32 additional_info);
 extern bool LWLockConditionalAcquire(LWLock *lock, LWLockMode mode);
 extern bool LWLockAcquireOrWait(LWLock *lock, LWLockMode mode);
 extern void LWLockRelease(LWLock *lock);

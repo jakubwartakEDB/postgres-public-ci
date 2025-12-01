@@ -58,7 +58,7 @@ pg_get_multixact_members(PG_FUNCTION_ARGS)
 		multi = palloc_object(mxact);
 		/* no need to allow for old values here */
 		multi->nmembers = GetMultiXactIdMembers(mxid, &multi->members, false,
-												false);
+												false, 0);
 		multi->iter = 0;
 
 		if (get_call_result_type(fcinfo, NULL, &tupdesc) != TYPEFUNC_COMPOSITE)
@@ -114,7 +114,7 @@ pg_get_multixact_stats(PG_FUNCTION_ARGS)
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("return type must be a row type")));
 
-	GetMultiXactInfo(&multixacts, &nextOffset, &oldestMultiXactId, &oldestOffset);
+	GetMultiXactInfo(&multixacts, &nextOffset, &oldestMultiXactId, &oldestOffset, 0);
 	members = nextOffset - oldestOffset;
 
 	membersBytes = MultiXactOffsetStorageSize(nextOffset, oldestOffset);

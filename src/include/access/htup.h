@@ -84,6 +84,6 @@ extern void HeapTupleHeaderAdjustCmax(const HeapTupleHeaderData *tup,
 									  CommandId *cmax, bool *iscombo);
 
 /* Prototype for HeapTupleHeader accessors in heapam.c */
-extern TransactionId HeapTupleGetUpdateXid(const HeapTupleHeaderData *tup);
+extern TransactionId HeapTupleGetUpdateXid(const HeapTupleHeaderData *tup, uint32_t r);
 
 #endif							/* HTUP_H */

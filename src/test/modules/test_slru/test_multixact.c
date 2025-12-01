@@ -31,7 +31,7 @@ test_create_multixact(PG_FUNCTION_ARGS)
 
 	MultiXactIdSetOldestMember();
 	id = MultiXactIdCreate(GetCurrentTransactionId(), MultiXactStatusUpdate,
-						   GetCurrentTransactionId(), MultiXactStatusForShare);
+						   GetCurrentTransactionId(), MultiXactStatusForShare, 0);
 	PG_RETURN_TRANSACTIONID(id);
 }
 
@@ -47,7 +47,7 @@ test_read_multixact(PG_FUNCTION_ARGS)
 	/* discard caches */
 	AtEOXact_MultiXact();
 
-	if (GetMultiXactIdMembers(id, &members, false, false) == -1)
+	if (GetMultiXactIdMembers(id, &members, false, false, 0) == -1)
 		elog(ERROR, "MultiXactId not found");
 
 	PG_RETURN_VOID();

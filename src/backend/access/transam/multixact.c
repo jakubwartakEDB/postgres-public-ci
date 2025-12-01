@@ -264,7 +264,9 @@ static MemoryContext MXactContext = NULL;
 /* internal MultiXactId management */
 static void MultiXactIdSetOldestVisible(void);
 static void RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
-							   int nmembers, MultiXactMember *members);
+							   int nmembers, MultiXactMember *members,
+							   RelFileNumber r);
+
 static MultiXactId GetNewMultiXactId(int nmembers, MultiXactOffset *offset);
 
 /* MultiXact cache management */
@@ -299,7 +301,8 @@ static void WriteMTruncateXlogRec(Oid oldestMultiDB,
  */
 MultiXactId
 MultiXactIdCreate(TransactionId xid1, MultiXactStatus status1,
-				  TransactionId xid2, MultiXactStatus status2)
+				  TransactionId xid2, MultiXactStatus status2,
+				  RelFileNumber r)
 {
 	MultiXactId newMulti;
 	MultiXactMember members[2];
@@ -323,7 +326,7 @@ MultiXactIdCreate(TransactionId xid1, MultiXactStatus status1,
 	members[1].xid = xid2;
 	members[1].status = status2;
 
-	newMulti = MultiXactIdCreateFromMembers(2, members);
+	newMulti = MultiXactIdCreateFromMembers(2, members, r);
 
 	debug_elog3(DEBUG2, "Create: %s",
 				mxid_to_string(newMulti, 2, members));
@@ -351,7 +354,8 @@ MultiXactIdCreate(TransactionId xid1, MultiXactStatus status1,
  * passed in.
  */
 MultiXactId
-MultiXactIdExpand(MultiXactId multi, TransactionId xid, MultiXactStatus status)
+MultiXactIdExpand(MultiXactId multi, TransactionId xid, MultiXactStatus status,
+				  RelFileNumber r)
 {
 	MultiXactId newMulti;
 	MultiXactMember *members;
@@ -374,7 +378,7 @@ MultiXactIdExpand(MultiXactId multi, TransactionId xid, MultiXactStatus status)
 	 * caller of this function does a check that the multixact is no longer
 	 * running.
 	 */
-	nmembers = GetMultiXactIdMembers(multi, &members, false, false);
+	nmembers = GetMultiXactIdMembers(multi, &members, false, false, r);
 
 	if (nmembers < 0)
 	{
@@ -389,7 +393,7 @@ MultiXactIdExpand(MultiXactId multi, TransactionId xid, MultiXactStatus status)
 		 */
 		member.xid = xid;
 		member.status = status;
-		newMulti = MultiXactIdCreateFromMembers(1, &member);
+		newMulti = MultiXactIdCreateFromMembers(1, &member, r);
 
 		debug_elog4(DEBUG2, "Expand: %u has no members, create singleton %u",
 					multi, newMulti);
@@ -440,7 +444,7 @@ MultiXactIdExpand(MultiXactId multi, TransactionId xid, MultiXactStatus status)
 
 	newMembers[j].xid = xid;
 	newMembers[j++].status = status;
-	newMulti = MultiXactIdCreateFromMembers(j, newMembers);
+	newMulti = MultiXactIdCreateFromMembers(j, newMembers, r);
 
 	pfree(members);
 	pfree(newMembers);
@@ -474,7 +478,7 @@ MultiXactIdIsRunning(MultiXactId multi, bool isLockOnly)
 	 * "false" here means we assume our callers have checked that the given
 	 * multi cannot possibly come from a pg_upgraded database.
 	 */
-	nmembers = GetMultiXactIdMembers(multi, &members, false, isLockOnly);
+	nmembers = GetMultiXactIdMembers(multi, &members, false, isLockOnly, 0);
 
 	if (nmembers <= 0)
 	{
@@ -655,7 +659,7 @@ ReadMultiXactIdRange(MultiXactId *oldest, MultiXactId *next)
  * NB: the passed members[] array will be sorted in-place.
  */
 MultiXactId
-MultiXactIdCreateFromMembers(int nmembers, MultiXactMember *members)
+MultiXactIdCreateFromMembers(int nmembers, MultiXactMember *members, RelFileNumber r)
 {
 	MultiXactId multi;
 	MultiXactOffset offset;
@@ -735,7 +739,7 @@ MultiXactIdCreateFromMembers(int nmembers, MultiXactMember *members)
 	(void) XLogInsert(RM_MULTIXACT_ID, XLOG_MULTIXACT_CREATE_ID);
 
 	/* Now enter the information into the OFFSETs and MEMBERs logs */
-	RecordNewMultiXact(multi, offset, nmembers, members);
+	RecordNewMultiXact(multi, offset, nmembers, members, r);
 
 	/* Done with critical section */
 	END_CRIT_SECTION();
@@ -757,7 +761,8 @@ MultiXactIdCreateFromMembers(int nmembers, MultiXactMember *members)
  */
 static void
 RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
-				   int nmembers, MultiXactMember *members)
+				   int nmembers, MultiXactMember *members,
+				   RelFileNumber r)
 {
 	int64		pageno;
 	int64		prev_pageno;
@@ -791,7 +796,7 @@ RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
 	 * multixid.
 	 */
 	lock = SimpleLruGetBankLock(MultiXactOffsetCtl, pageno);
-	LWLockAcquire(lock, LW_EXCLUSIVE);
+	LWLockAcquireExt(lock, LW_EXCLUSIVE, r);
 
 	/*
 	 * Note: we pass the MultiXactId to SimpleLruReadPage as the "transaction"
@@ -880,7 +885,7 @@ RecordNewMultiXact(MultiXactId multi, MultiXactOffset offset,
 				if (prevlock != NULL)
 					LWLockRelease(prevlock);
 
-				LWLockAcquire(lock, LW_EXCLUSIVE);
+				LWLockAcquireExt(lock, LW_EXCLUSIVE, r);
 				prevlock = lock;
 			}
 			slotno = SimpleLruReadPage(MultiXactMemberCtl, pageno, true, multi);
@@ -1113,7 +1118,8 @@ GetNewMultiXactId(int nmembers, MultiXactOffset *offset)
  */
 int
 GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **members,
-					  bool from_pgupgrade, bool isLockOnly)
+					  bool from_pgupgrade, bool isLockOnly,
+					  RelFileNumber r)
 {
 	int64		pageno;
 	int64		prev_pageno;
@@ -1205,7 +1211,7 @@ GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **members,
 
 	/* Acquire the bank lock for the page we need. */
 	lock = SimpleLruGetBankLock(MultiXactOffsetCtl, pageno);
-	LWLockAcquire(lock, LW_EXCLUSIVE);
+	LWLockAcquireExt(lock, LW_EXCLUSIVE, r);
 
 	/* read this multi's offset */
 	slotno = SimpleLruReadPage(MultiXactOffsetCtl, pageno, true, multi);
@@ -1243,7 +1249,7 @@ GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **members,
 			if (newlock != lock)
 			{
 				LWLockRelease(lock);
-				LWLockAcquire(newlock, LW_EXCLUSIVE);
+				LWLockAcquireExt(newlock, LW_EXCLUSIVE, r);
 				lock = newlock;
 			}
 			slotno = SimpleLruReadPage(MultiXactOffsetCtl, pageno, true, tmpMXact);
@@ -1307,7 +1313,7 @@ GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **members,
 			{
 				if (lock)
 					LWLockRelease(lock);
-				LWLockAcquire(newlock, LW_EXCLUSIVE);
+				LWLockAcquireExt(newlock, LW_EXCLUSIVE, r);
 				lock = newlock;
 			}
 
@@ -2467,7 +2473,8 @@ find_multixact_start(MultiXactId multi, MultiXactOffset *result)
  */
 void
 GetMultiXactInfo(uint32 *multixacts, MultiXactOffset *nextOffset,
-				 MultiXactId *oldestMultiXactId, MultiXactOffset *oldestOffset)
+				 MultiXactId *oldestMultiXactId, MultiXactOffset *oldestOffset,
+				 RelFileNumber r)
 {
 	MultiXactId nextMultiXactId;
 
@@ -2522,7 +2529,7 @@ MultiXactMemberFreezeThreshold(void)
 	uint64		members;
 
 	/* Read the current offsets and multixact usage. */
-	GetMultiXactInfo(&multixacts, &nextOffset, &oldestMultiXactId, &oldestOffset);
+	GetMultiXactInfo(&multixacts, &nextOffset, &oldestMultiXactId, &oldestOffset, 0);
 	members = nextOffset - oldestOffset;
 
 	/* If member space utilization is low, no special action is required. */
@@ -2914,7 +2921,7 @@ multixact_redo(XLogReaderState *record)
 
 		/* Store the data back into the SLRU files */
 		RecordNewMultiXact(xlrec->mid, xlrec->moff, xlrec->nmembers,
-						   xlrec->members);
+						   xlrec->members, 0);
 
 		/* Make sure nextMXact/nextOffset are beyond what this record has */
 		MultiXactAdvanceNextMXact(NextMultiXactId(xlrec->mid),

@@ -1397,7 +1397,7 @@ check_tuple_visibility(HeapCheckContext *ctx, bool *xmin_commit_status_ok,
 		 * We already checked above that this multixact is within limits for
 		 * this table.  Now check the update xid from this multixact.
 		 */
-		xmax = HeapTupleGetUpdateXid(tuphdr);
+		xmax = HeapTupleGetUpdateXid(tuphdr, 0); /* DEMO: we do not care */
 		switch (get_xid_status(xmax, ctx, &xmax_status))
 		{
 			case XID_INVALID:

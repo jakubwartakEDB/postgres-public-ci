@@ -242,7 +242,7 @@ HeapTupleSatisfiesSelf(HeapTuple htup, Snapshot snapshot, Buffer buffer)
 			{
 				TransactionId xmax;
 
-				xmax = HeapTupleGetUpdateXid(tuple);
+				xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 				/* not LOCKED_ONLY, so it has to have an xmax */
 				Assert(TransactionIdIsValid(xmax));
@@ -297,7 +297,7 @@ HeapTupleSatisfiesSelf(HeapTuple htup, Snapshot snapshot, Buffer buffer)
 		if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask))
 			return true;
 
-		xmax = HeapTupleGetUpdateXid(tuple);
+		xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 		/* not LOCKED_ONLY, so it has to have an xmax */
 		Assert(TransactionIdIsValid(xmax));
@@ -488,7 +488,7 @@ HeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 			{
 				TransactionId xmax;
 
-				xmax = HeapTupleGetUpdateXid(tuple);
+				xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 				/* not LOCKED_ONLY, so it has to have an xmax */
 				Assert(TransactionIdIsValid(xmax));
@@ -568,7 +568,7 @@ HeapTupleSatisfiesUpdate(HeapTuple htup, CommandId curcid,
 			return TM_Ok;
 		}
 
-		xmax = HeapTupleGetUpdateXid(tuple);
+		xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 		if (!TransactionIdIsValid(xmax))
 		{
 			if (MultiXactIdIsRunning(HeapTupleHeaderGetRawXmax(tuple), false))
@@ -708,7 +708,7 @@ HeapTupleSatisfiesDirty(HeapTuple htup, Snapshot snapshot,
 			{
 				TransactionId xmax;
 
-				xmax = HeapTupleGetUpdateXid(tuple);
+				xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 				/* not LOCKED_ONLY, so it has to have an xmax */
 				Assert(TransactionIdIsValid(xmax));
@@ -781,7 +781,7 @@ HeapTupleSatisfiesDirty(HeapTuple htup, Snapshot snapshot,
 		if (HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask))
 			return true;
 
-		xmax = HeapTupleGetUpdateXid(tuple);
+		xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 		/* not LOCKED_ONLY, so it has to have an xmax */
 		Assert(TransactionIdIsValid(xmax));
@@ -897,7 +897,7 @@ HeapTupleSatisfiesMVCC(HeapTuple htup, Snapshot snapshot,
 			{
 				TransactionId xmax;
 
-				xmax = HeapTupleGetUpdateXid(tuple);
+				xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 				/* not LOCKED_ONLY, so it has to have an xmax */
 				Assert(TransactionIdIsValid(xmax));
@@ -960,7 +960,7 @@ HeapTupleSatisfiesMVCC(HeapTuple htup, Snapshot snapshot,
 		/* already checked above */
 		Assert(!HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask));
 
-		xmax = HeapTupleGetUpdateXid(tuple);
+		xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 		/* not LOCKED_ONLY, so it has to have an xmax */
 		Assert(TransactionIdIsValid(xmax));
@@ -1183,7 +1183,7 @@ HeapTupleSatisfiesVacuumHorizon(HeapTuple htup, Buffer buffer, TransactionId *de
 
 	if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
 	{
-		TransactionId xmax = HeapTupleGetUpdateXid(tuple);
+		TransactionId xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 
 		/* already checked above */
 		Assert(!HEAP_XMAX_IS_LOCKED_ONLY(tuple->t_infomask));
@@ -1378,7 +1378,7 @@ HeapTupleHeaderIsOnlyLocked(HeapTupleHeader tuple)
 		return false;
 
 	/* ... but if it's a multi, then perhaps the updating Xid aborted. */
-	xmax = HeapTupleGetUpdateXid(tuple);
+	xmax = HeapTupleGetUpdateXid(tuple, 12); /* DEMO */
 
 	/* not LOCKED_ONLY, so it has to have an xmax */
 	Assert(TransactionIdIsValid(xmax));
@@ -1527,7 +1527,7 @@ HeapTupleSatisfiesHistoricMVCC(HeapTuple htup, Snapshot snapshot,
 	 */
 	else if (tuple->t_infomask & HEAP_XMAX_IS_MULTI)
 	{
-		xmax = HeapTupleGetUpdateXid(tuple);
+		xmax = HeapTupleGetUpdateXid(tuple, htup->t_tableOid);
 	}
 
 	/* check if it's one of our txids, toplevel is also in there */

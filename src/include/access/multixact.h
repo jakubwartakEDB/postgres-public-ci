@@ -97,21 +97,24 @@ typedef struct xl_multixact_truncate
 
 extern MultiXactId MultiXactIdCreate(TransactionId xid1,
 									 MultiXactStatus status1, TransactionId xid2,
-									 MultiXactStatus status2);
+									 MultiXactStatus status2, RelFileNumber r);
 extern MultiXactId MultiXactIdExpand(MultiXactId multi, TransactionId xid,
-									 MultiXactStatus status);
+									 MultiXactStatus status, RelFileNumber r);
 extern MultiXactId MultiXactIdCreateFromMembers(int nmembers,
-												MultiXactMember *members);
+												MultiXactMember *members,
+												RelFileNumber r);
 
 extern MultiXactId ReadNextMultiXactId(void);
 extern void ReadMultiXactIdRange(MultiXactId *oldest, MultiXactId *next);
 extern bool MultiXactIdIsRunning(MultiXactId multi, bool isLockOnly);
 extern void MultiXactIdSetOldestMember(void);
 extern int	GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **members,
-								  bool from_pgupgrade, bool isLockOnly);
+								  bool from_pgupgrade, bool isLockOnly,
+								  RelFileNumber r);
 extern void GetMultiXactInfo(uint32 *multixacts, MultiXactOffset *nextOffset,
 							 MultiXactId *oldestMultiXactId,
-							 MultiXactOffset *oldestOffset);
+							 MultiXactOffset *oldestOffset,
+							 RelFileNumber r);
 extern bool MultiXactIdPrecedes(MultiXactId multi1, MultiXactId multi2);
 extern bool MultiXactIdPrecedesOrEquals(MultiXactId multi1,
 										MultiXactId multi2);
