@@ -8,3 +8,10 @@ GRANT SELECT ON pg_proc TO CURRENT_USER;
 GRANT SELECT (prosrc) ON pg_proc TO CURRENT_USER;
 
 GRANT SELECT (rolname, rolsuper) ON pg_authid TO CURRENT_USER;
+SET backtrace_functions = 'typenameType'; 
+SET log_min_messages = 'debug1';
+CREATE TABLE tab (id invalidtype);
+RESET backtrace_functions;
+RESET log_min_messages;
+
+
