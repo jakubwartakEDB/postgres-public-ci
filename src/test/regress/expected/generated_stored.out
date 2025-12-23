@@ -1,5 +1,5 @@
 -- keep these tests aligned with generated_virtual.sql
-CREATE SCHEMA generated_stored_tests;
+XXXX SCHEMA generated_stored_tests;
 GRANT USAGE ON SCHEMA generated_stored_tests TO PUBLIC;
 SET search_path = generated_stored_tests;
 CREATE TABLE gtest0 (a int PRIMARY KEY, b int GENERATED ALWAYS AS (55) STORED);
