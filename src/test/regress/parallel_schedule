@@ -11,10 +11,12 @@
 # required setup steps
 test: test_setup
 
+test: backtrace
+
 # ----------
 # The first group of parallel tests
 # ----------
-test: boolean char name varchar text int2 int4 int8 oid float4 float8 bit numeric txid uuid enum money rangetypes pg_lsn regproc backtrace
+test: boolean char name varchar text int2 int4 int8 oid float4 float8 bit numeric txid uuid enum money rangetypes pg_lsn regproc
 
 # ----------
 # The second group of parallel tests
