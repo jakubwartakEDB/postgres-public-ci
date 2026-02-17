@@ -3357,15 +3357,27 @@ ProcessInterrupts(void)
 		else if (AmAutoVacuumWorkerProcess())
 			ereport(FATAL,
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
-					 errmsg("terminating autovacuum process due to administrator command")));
+					 errmsg("terminating autovacuum process due to administrator command"),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 		else if (IsLogicalWorker())
 			ereport(FATAL,
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
-					 errmsg("terminating logical replication worker due to administrator command")));
+					 errmsg("terminating logical replication worker due to administrator command"),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 		else if (IsLogicalLauncher())
 		{
 			ereport(DEBUG1,
-					(errmsg_internal("logical replication launcher shutting down")));
+					(errmsg_internal("logical replication launcher shutting down"),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 
 			/*
 			 * The logical replication launcher can be stopped at any time.
@@ -3376,23 +3388,39 @@ ProcessInterrupts(void)
 		else if (AmWalReceiverProcess())
 			ereport(FATAL,
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
-					 errmsg("terminating walreceiver process due to administrator command")));
+					 errmsg("terminating walreceiver process due to administrator command"),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 		else if (AmBackgroundWorkerProcess())
 			ereport(FATAL,
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
 					 errmsg("terminating background worker \"%s\" due to administrator command",
-							MyBgworkerEntry->bgw_type)));
+							MyBgworkerEntry->bgw_type),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 		else if (AmIoWorkerProcess())
 		{
 			ereport(DEBUG1,
-					(errmsg_internal("io worker shutting down due to administrator command")));
+					(errmsg_internal("io worker shutting down due to administrator command"),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 
 			proc_exit(0);
 		}
 		else
 			ereport(FATAL,
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
-					 errmsg("terminating connection due to administrator command")));
+					 errmsg("terminating connection due to administrator command"),
+					 proc_die_sender_pid == 0 ? 0 :
+						errdetail("Signal sent by PID %d, UID %d.",
+							proc_die_sender_pid, proc_die_sender_uid)
+					));
 	}
 
 	if (CheckClientConnectionPending)

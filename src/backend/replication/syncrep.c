@@ -302,7 +302,11 @@ SyncRepWaitForLSN(XLogRecPtr lsn, bool commit)
 			ereport(WARNING,
 					(errcode(ERRCODE_ADMIN_SHUTDOWN),
 					 errmsg("canceling the wait for synchronous replication and terminating connection due to administrator command"),
-					 errdetail("The transaction has already committed locally, but might not have been replicated to the standby.")));
+					 errdetail("The transaction has already committed locally, but might not have been replicated to the standby."),
+						proc_die_sender_pid == 0 ? 0 :
+							errhint("Signal sent by PID %d, UID %d.",
+								proc_die_sender_pid, proc_die_sender_uid)
+						));
 			whereToSendOutput = DestNone;
 			SyncRepCancelWait();
 			break;
@@ -319,7 +323,11 @@ SyncRepWaitForLSN(XLogRecPtr lsn, bool commit)
 			QueryCancelPending = false;
 			ereport(WARNING,
 					(errmsg("canceling wait for synchronous replication due to user request"),
-					 errdetail("The transaction has already committed locally, but might not have been replicated to the standby.")));
+					 errdetail("The transaction has already committed locally, but might not have been replicated to the standby."),
+						proc_die_sender_pid == 0 ? 0 :
+							errhint("Signal sent by PID %d, UID %d.",
+								proc_die_sender_pid, proc_die_sender_uid)
+						));
 			SyncRepCancelWait();
 			break;
 		}
