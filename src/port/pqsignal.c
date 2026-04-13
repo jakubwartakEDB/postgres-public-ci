@@ -90,10 +90,11 @@ static volatile pqsigfunc pqsignal_handlers[PG_NSIG];
  *
  * This wrapper also handles restoring the value of errno.
  */
+#if defined(USE_SIGACTION)
 #if defined(USE_SIGACTION) && defined(USE_SIGINFO)
 static void
 wrapper_handler(int postgres_signal_arg, siginfo_t *info, void *context)
-#else
+#else /* no USE_SIGINFO */
 static void
 wrapper_handler(int postgres_signal_arg)
 #endif
@@ -144,6 +145,7 @@ wrapper_handler(int postgres_signal_arg)
 
 	errno = save_errno;
 }
+#endif
 
 /*
  * Set up a signal handler, with SA_RESTART, for signal "signo"
@@ -182,14 +184,13 @@ pqsignal(int signo, pqsigfunc func)
 		act.sa_handler = SIG_IGN;
 	else if (is_dfl)
 		act.sa_handler = SIG_DFL;
-
 #ifdef USE_SIGINFO
 	if (!(is_ign || is_dfl))
 	{
 		act.sa_sigaction = wrapper_handler;
 		act.sa_flags |= SA_SIGINFO;
 	}
-	else
+	//else
 #else
 	else
 		act.sa_handler = wrapper_handler;
