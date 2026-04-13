@@ -203,6 +203,7 @@ pqsignal(int signo, pqsigfunc func)
 		Assert(false);			/* probably indicates coding error */
 #else
 	/* Forward to Windows native signal system. */
+	bool use_wrapper = !(is_ign || is_dfl);
 	if (signal(signo, use_wrapper ? wrapper_handler : func) == SIG_ERR)
 		Assert(false);			/* probably indicates coding error */
 #endif
