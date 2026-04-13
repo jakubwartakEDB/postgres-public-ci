@@ -64,10 +64,10 @@
 #endif
 
 #if !(defined(WIN32) && defined(FRONTEND))
-#define USE_PG_SIGACTION
+#define USE_SIGACTION
 #endif
 
-#if defined(USE_PG_SIGACTION) && defined(HAVE_SA_SIGINFO)
+#if defined(USE_SIGACTION) && defined(HAVE_SA_SIGINFO)
 #define USE_SIGINFO
 #endif
 
@@ -90,7 +90,7 @@ static volatile pqsigfunc pqsignal_handlers[PG_NSIG];
  *
  * This wrapper also handles restoring the value of errno.
  */
-#ifdef USE_PG_SIGACTION
+#ifdef USE_SIGACTION
 static void
 wrapper_handler(int postgres_signal_arg, siginfo_t *info, void *context)
 #else
@@ -155,7 +155,7 @@ wrapper_handler(int postgres_signal_arg)
 void
 pqsignal(int signo, pqsigfunc func)
 {
-#ifdef USE_PG_SIGACTION
+#ifdef USE_SIGACTION
 	struct sigaction act;
 #endif
 	bool		is_ign = func == PG_SIG_IGN;
@@ -174,7 +174,7 @@ pqsignal(int signo, pqsigfunc func)
 	 * Configure system to either ignore/reset the signal handler, or to
 	 * forward it to wrapper_handler.
 	 */
-#ifdef USE_PG_SIGACTION
+#ifdef USE_SIGACTION
 	sigemptyset(&act.sa_mask);
 	act.sa_flags = SA_RESTART;
 
