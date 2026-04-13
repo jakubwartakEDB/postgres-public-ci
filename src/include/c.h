@@ -1446,10 +1446,11 @@ extern int	fdatasync(int fd);
  * or a field does not apply to the signal, the value is instead reset to the
  * documented default value.
  */
+
 typedef struct pg_signal_info
 {
-	pid_t		pid;			/* pid of sending process or 0 if unknown */
-	uid_t		uid;			/* uid of sending process or 0 if unknown */
+	uint32_t		pid;			/* pid of sending process or 0 if unknown */
+	uint32_t		uid;			/* uid of sending process or 0 if unknown */
 } pg_signal_info;
 
 /*
