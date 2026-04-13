@@ -90,7 +90,7 @@ static volatile pqsigfunc pqsignal_handlers[PG_NSIG];
  *
  * This wrapper also handles restoring the value of errno.
  */
-#ifdef USE_SIGACTION
+#if defined(USE_SIGACTION) && defined(USE_SIGINFO)
 static void
 wrapper_handler(int postgres_signal_arg, siginfo_t *info, void *context)
 #else
