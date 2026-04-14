@@ -134,12 +134,12 @@ pgwin32_dispatch_queued_signals(void)
 			{
 				/* Execute this signal */
 				struct sigaction *act = &pg_signal_array[i];
-				pqsigfunc	sig = (pqsigfunc) act->sa_handler;
+				pqsigfunc	sig = (pqsigfunc)(pg_funcptr_t) act->sa_handler;
 
 				if (sig == PG_SIG_DFL)
 					sig = pg_signal_defaults[i];
 				pg_signal_queue &= ~sigmask(i);
-				if (sig != (pqsigfunc)SIG_ERR && sig != PG_SIG_IGN && sig != PG_SIG_DFL)
+				if (sig != (pqsigfunc)(pg_funcptr_t)SIG_ERR && sig != PG_SIG_IGN && sig != PG_SIG_DFL)
 				{
 					sigset_t	block_mask;
 					sigset_t	save_mask;
