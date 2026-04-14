@@ -88,7 +88,7 @@ pgwin32_signal_initialize(void)
 		pg_signal_array[i].sa_handler = SIG_DFL;
 		pg_signal_array[i].sa_mask = 0;
 		pg_signal_array[i].sa_flags = 0;
-		pg_signal_defaults[i] = SIG_IGN;
+		pg_signal_defaults[i] = PG_SIG_IGN;
 	}
 	pg_signal_mask = 0;
 	pg_signal_queue = 0;
@@ -134,12 +134,12 @@ pgwin32_dispatch_queued_signals(void)
 			{
 				/* Execute this signal */
 				struct sigaction *act = &pg_signal_array[i];
-				pqsigfunc	sig = act->sa_handler;
+				pqsigfunc	sig = (pqsigfunc) act->sa_handler;
 
 				if (sig == PG_SIG_DFL)
 					sig = pg_signal_defaults[i];
 				pg_signal_queue &= ~sigmask(i);
-				if (sig != SIG_ERR && sig != PG_SIG_IGN && sig != PG_SIG_DFL)
+				if (sig != (pqsigfunc)SIG_ERR && sig != PG_SIG_IGN && sig != PG_SIG_DFL)
 				{
 					sigset_t	block_mask;
 					sigset_t	save_mask;
