@@ -190,7 +190,6 @@ pqsignal(int signo, pqsigfunc func)
 		act.sa_sigaction = wrapper_handler;
 		act.sa_flags |= SA_SIGINFO;
 	}
-	//else
 #else
 	else
 		act.sa_handler = wrapper_handler;
