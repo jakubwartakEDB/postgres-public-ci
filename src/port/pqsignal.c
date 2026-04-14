@@ -203,8 +203,11 @@ pqsignal(int signo, pqsigfunc func)
 	if (sigaction(signo, &act, NULL) < 0)
 		Assert(false);			/* probably indicates coding error */
 #else
-	/* Forward to Windows native signal system. */
-	if (signal(signo, func) == SIG_ERR)
+	/*
+	 * Forward to Windows native signal system, we need to send this though
+	 * wrapper handler as it it needs to take single argument only.
+	 */
+	if (signal(signo, wrapper_handler) == SIG_ERR)
 		Assert(false);			/* probably indicates coding error */
 #endif
 }
