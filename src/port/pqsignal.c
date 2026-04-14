@@ -90,7 +90,6 @@ static volatile pqsigfunc pqsignal_handlers[PG_NSIG];
  *
  * This wrapper also handles restoring the value of errno.
  */
-#if defined(USE_SIGACTION)
 #if defined(USE_SIGACTION) && defined(USE_SIGINFO)
 static void
 wrapper_handler(int postgres_signal_arg, siginfo_t *info, void *context)
@@ -145,7 +144,6 @@ wrapper_handler(int postgres_signal_arg)
 
 	errno = save_errno;
 }
-#endif
 
 /*
  * Set up a signal handler, with SA_RESTART, for signal "signo"
@@ -159,6 +157,8 @@ pqsignal(int signo, pqsigfunc func)
 {
 #ifdef USE_SIGACTION
 	struct sigaction act;
+#else
+	void (*wrapper_func_ptr)(int);
 #endif
 	bool		is_ign = func == PG_SIG_IGN;
 	bool		is_dfl = func == PG_SIG_DFL;
@@ -201,12 +201,19 @@ pqsignal(int signo, pqsigfunc func)
 #endif
 	if (sigaction(signo, &act, NULL) < 0)
 		Assert(false);			/* probably indicates coding error */
-#else
+#else /* no USE_SIGACTION */
 	/*
 	 * Forward to Windows native signal system, we need to send this though
 	 * wrapper handler as it it needs to take single argument only.
 	 */
-	if (signal(signo, wrapper_handler) == SIG_ERR)
+	if(is_ign)
+		wrapper_func_ptr = SIG_IGN;
+	else if (is_dfl)
+		wrapper_func_ptr = SIG_DFL;
+	else
+		wrapper_func_ptr = wrapper_handler;
+
+	if (signal(signo, wrapper_func_ptr) == SIG_ERR)
 		Assert(false);			/* probably indicates coding error */
 #endif
 }
