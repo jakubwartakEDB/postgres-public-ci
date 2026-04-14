@@ -85,10 +85,10 @@ pgwin32_signal_initialize(void)
 
 	for (i = 0; i < PG_SIGNAL_COUNT; i++)
 	{
-		pg_signal_array[i].sa_handler = PG_SIG_DFL;
+		pg_signal_array[i].sa_handler = SIG_DFL;
 		pg_signal_array[i].sa_mask = 0;
 		pg_signal_array[i].sa_flags = 0;
-		pg_signal_defaults[i] = PG_SIG_IGN;
+		pg_signal_defaults[i] = SIG_IGN;
 	}
 	pg_signal_mask = 0;
 	pg_signal_queue = 0;
