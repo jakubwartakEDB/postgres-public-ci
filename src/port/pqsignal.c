@@ -206,7 +206,7 @@ pqsignal(int signo, pqsigfunc func)
 	 * Forward to Windows native signal system, we need to send this though
 	 * wrapper handler as it it needs to take single argument only.
 	 */
-	if(is_ign)
+	if (is_ign)
 		wrapper_func_ptr = SIG_IGN;
 	else if (is_dfl)
 		wrapper_func_ptr = SIG_DFL;
