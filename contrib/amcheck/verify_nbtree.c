@@ -149,8 +149,6 @@ typedef struct BtreeCheckState
 	bloom_filter *heapfilter;
 	/* Debug counter for index tuples verified */
 	int64		indextuplesverified;
-	/* Index fetch context for heap tuple lookups by TID */
-	IndexFetchTableData *index_fetch;
 	/* Reusable slot and executor state for FormIndexDatum() */
 	TupleTableSlot *iakm_slot;
 	EState	   *iakm_estate;
@@ -547,14 +545,12 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 		state->indextuplesverified = 0;
 
 		/*
-		 * Set up reusable infrastructure for heap lookups by TID: an index
-		 * fetch context (follows LP_REDIRECT and HOT chains the same way a
-		 * regular index scan does), a slot, and an executor state for
-		 * FormIndexDatum().  Creating these once per verification avoids
-		 * rebuilding executor state (and recompiling index expressions) for
-		 * every index tuple that misses the Bloom filter.
+		 * Set up reusable infrastructure for heap lookups by TID: a slot and
+		 * an executor state for FormIndexDatum().  Creating these once per
+		 * verification avoids rebuilding executor state (and recompiling
+		 * index expressions) for every index tuple that misses the Bloom
+		 * filter.
 		 */
-		state->index_fetch = table_index_fetch_begin(heaprel, SO_NONE);
 		state->iakm_slot = table_slot_create(heaprel, NULL);
 		state->iakm_estate = CreateExecutorState();
 	}
@@ -729,7 +725,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 				(errmsg_internal("finished verifying " INT64_FORMAT " index tuples point to matching heap tuples",
 								 state->indextuplesverified)));
 		bloom_free(state->heapfilter);
-		table_index_fetch_end(state->index_fetch);
 		ExecDropSingleTupleTableSlot(state->iakm_slot);
 		FreeExecutorState(state->iakm_estate);
 		/* These may have been pointing to the now-gone estate */
@@ -3063,12 +3058,14 @@ bt_heap_fingerprint_callback(Relation index, ItemPointer tid, Datum *values,
  * compare keys.
  *
  * The heap lookup mirrors what a regular index scan does:
- * table_index_fetch_tuple() with our MVCC snapshot follows LP_REDIRECT and
- * HOT chains, returning the visible tuple version.  A "not found" result
- * means the tuple is dead or was concurrently pruned; we skip it exactly as
- * an index scan would.  Detecting index entries that point to nonexistent
- * heap slots is a separate class of corruption, handled elsewhere; what we
- * verify here is that the visible heap tuple matches the index key.
+ * table_fetch_tid() with our MVCC snapshot follows LP_REDIRECT and HOT
+ * chains, resolving the TID of the visible tuple version, which we then
+ * load into a slot with table_tuple_fetch_row_version().  A "not found"
+ * result means the tuple is dead or was concurrently pruned; we skip it
+ * exactly as an index scan would.  Detecting index entries that point to
+ * nonexistent heap slots is a separate class of corruption, handled
+ * elsewhere; what we verify here is that the visible heap tuple matches the
+ * index key.
  */
 static void
 bt_verify_index_tuple_points_to_heap(BtreeCheckState *state, IndexTuple itup,
@@ -3106,16 +3103,23 @@ bt_verify_index_tuple_points_to_heap(BtreeCheckState *state, IndexTuple itup,
 		IndexTuple	heap_norm;
 		Datum		values[INDEX_MAX_KEYS];
 		bool		isnull[INDEX_MAX_KEYS];
+		ItemPointerData visibletid;
 		bool		found;
-		bool		call_again = false;
 
 		/* Reclaim memory from the previous FormIndexDatum() call, if any */
 		ResetPerTupleExprContext(state->iakm_estate);
 
-		found = table_index_fetch_tuple(state->index_fetch, tid,
-										state->snapshot, slot,
-										&call_again, NULL);
-		if (!found)
+		/*
+		 * MVCC snapshot holds back the horizon for any tuple it can see, so the
+		 * fetch of the resolved TID should also succeed.
+		 */
+		visibletid = *tid;
+		found = table_fetch_tid(state->heaprel, &visibletid, state->snapshot,
+								NULL);
+		if (found)
+			found = table_tuple_fetch_row_version(state->heaprel, &visibletid,
+												  state->snapshot, slot);
+		else
 		{
 			/*
 			 * No visible tuple at this TID.  Normally that just means the
