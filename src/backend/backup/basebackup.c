@@ -1991,7 +1991,7 @@ read_relfile_data_into_buffer(bbsink *sink, const char *readfilename,
 							   readfilename);
 
 	/*
-	 * read_file_data_into_buffer() retries short reads, so if we got fewer
+	 * basebackup_read_file() retries short reads, so if we got fewer
 	 * bytes than requested we must have hit EOF, which means that the
 	 * relation is being truncated.
 	 *
