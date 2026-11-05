@@ -1838,6 +1838,16 @@ sendRelFile(bbsink *sink, const char *readfilename, const char *tarfilename,
 	total_blocks = filestat.st_size / BLCKSZ;
 	blocks_done = 0;
 	ibindex = 0;
+
+	/*
+	 * We read only whole blocks and that is harmless, but segment size not being
+	 * multiple of BLCKSZ is unusual sign.
+	 */
+	if (incremental_blocks == NULL && filestat.st_size % BLCKSZ != 0)
+		ereport(WARNING,
+				(errmsg("file \"%s\" has size %lld which is not a multiple of block size %d",
+						readfilename, (long long) filestat.st_size, BLCKSZ)));
+
 	while (1)
 	{
 		size_t		cnt;
