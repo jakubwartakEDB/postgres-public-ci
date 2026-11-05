@@ -1641,8 +1641,9 @@ sendFile(bbsink *sink, const char *readfilename, const char *tarfilename,
 		 * Read as many bytes as will fit in the buffer, or however many
 		 * are left to read, whichever is less.
 		 */
-		cnt = basebackup_read_file(fd, sink->bbs_buffer, remaining, bytes_done,
-								   readfilename);
+		cnt = basebackup_read_file(fd, sink->bbs_buffer,
+								   Min(sink->bbs_buffer_length, remaining),
+								   bytes_done, readfilename);
 		Assert(cnt <= remaining);
 
 		/*
